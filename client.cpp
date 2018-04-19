@@ -13,7 +13,7 @@
 
 static void usage() {
   std::clog << "\n";
-  std::clog << "Usage: chan [options] <hostname>\n";
+  std::clog << "Usage: client [options] <hostname>\n";
   std::clog << "\n";
   std::clog << "  --verbose             : be verbose\n";
   std::clog << std::endl;
