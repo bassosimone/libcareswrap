@@ -165,9 +165,6 @@ class Channel {
   Channel() noexcept;
 
   ~Channel() noexcept;
-
- private:
-  std::chrono::time_point<std::chrono::steady_clock> time0;
 };
 
 }  // namespace libcareswrap
