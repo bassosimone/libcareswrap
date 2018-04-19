@@ -96,11 +96,29 @@ class Result {
   int timeouts = 0;
 };
 
+constexpr uint64_t verbosity_quiet = 0;
+constexpr uint64_t verbosity_warning = 1;
+constexpr uint64_t verbosity_info = 2;
+constexpr uint64_t verbosity_debug = 3;
+
+class Settings {
+ public:
+  uint64_t verbosity = verbosity_info;
+};
+
 class Channel {
  public:
   // Top-level API
 
+  Settings settings;
+
   bool resolve(int family, std::string hostname, Result *result) noexcept;
+
+  virtual void on_warning(const std::string &s) noexcept;
+
+  virtual void on_info(const std::string &s) noexcept;
+
+  virtual void on_debug(const std::string &s) noexcept;
 
   virtual void on_socket_data(SocketData data) noexcept;
 

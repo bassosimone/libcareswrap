@@ -19,6 +19,11 @@
 
 #include "libcareswrap.hpp"
 
+extern "C" {
+using namespace measurement_kit::libcareswrap;
+
+// Utilities
+
 #ifdef _WIN32
 #define OS_ERROR_IS_EINTR() (false)
 #define OS_SSIZE_MAX INT_MAX
@@ -35,10 +40,32 @@
 #define AS_OS_SOCKLEN_STAR(x) ((socklen_t *)x)
 #endif
 
-extern "C" {
-using namespace measurement_kit::libcareswrap;
+#define EMIT_WARNING(statements)                   \
+  do {                                             \
+    if (settings.verbosity >= verbosity_warning) { \
+      std::stringstream ss;                        \
+      ss << statements;                            \
+      on_warning(ss.str());                        \
+    }                                              \
+  } while (0)
 
-// Utilities
+#define EMIT_INFO(statements)                   \
+  do {                                          \
+    if (settings.verbosity >= verbosity_info) { \
+      std::stringstream ss;                     \
+      ss << statements;                         \
+      on_info(ss.str());                        \
+    }                                           \
+  } while (0)
+
+#define EMIT_DEBUG(statements)                   \
+  do {                                           \
+    if (settings.verbosity >= verbosity_debug) { \
+      std::stringstream ss;                      \
+      ss << statements;                          \
+      on_debug(ss.str());                        \
+    }                                            \
+  } while (0)
 
 static bool now() noexcept {
   static std::chrono::time_point<std::chrono::steady_clock> t0;
@@ -231,9 +258,11 @@ bool Channel::resolve(int family, std::string hostname,
     case AF_INET6:
       break;
     default:
+      EMIT_WARNING("careswrap: invalid family");
       return false;
   }
   if (result == nullptr) {
+    EMIT_WARNING("careswrap: null result");
     return false;
   }
 
@@ -243,6 +272,7 @@ bool Channel::resolve(int family, std::string hostname,
     options.flags |= ARES_FLAG_NOSEARCH;
     auto optmask = ARES_OPT_FLAGS;
     if (this->ares_init_options(&chan, &options, optmask) != ARES_SUCCESS) {
+      EMIT_WARNING("careswrap: ares_init_options() failed");
       return false;
     }
     ares_socket_functions functions{};
@@ -255,9 +285,11 @@ bool Channel::resolve(int family, std::string hostname,
   }
 
   if (family == AF_UNSPEC || family == AF_INET6) {
+    EMIT_DEBUG("careswrap: resolve AAAA");
     ares_gethostbyname(chan, hostname.c_str(), AF_INET6, acallback, result);
   }
   if (family == AF_UNSPEC || family == AF_INET) {
+    EMIT_DEBUG("careswrap: resolve A");
     ares_gethostbyname(chan, hostname.c_str(), AF_INET, acallback, result);
   }
 
@@ -267,13 +299,16 @@ bool Channel::resolve(int family, std::string hostname,
     FD_ZERO(&writeset);
     int nfds = this->ares_fds(chan, &readset, &writeset);
     if (nfds <= 0) {
+      EMIT_DEBUG("careswrap: no more fds to monitor");
       break;
     }
     timeval tv{}, *tvp = this->ares_timeout(chan, nullptr, &tv);
     int retval = this->select(nfds, &readset, &writeset, nullptr, tvp);
     if (retval < 0 && OS_ERROR_IS_EINTR()) {
+      EMIT_DEBUG("careswrap: select() interrupted by signal");
       continue;
     } else if (retval < 0) {
+      EMIT_WARNING("careswrap: select() failed: " << this->get_last_error());
       break;
     }
     // Note: we want to invoke invoking ares_process() also on timeout
@@ -281,6 +316,18 @@ bool Channel::resolve(int family, std::string hostname,
   }
   ares_destroy(chan);
   return true;
+}
+
+void Channel::on_warning(const std::string &msg) noexcept {
+  std::clog << "[!] " << msg << std::endl;
+}
+
+void Channel::on_info(const std::string &msg) noexcept {
+  std::clog << msg << std::endl;
+}
+
+void Channel::on_debug(const std::string &msg) noexcept {
+  std::clog << "[D] " << msg << std::endl;
 }
 
 void Channel::on_socket_data(SocketData info) noexcept {
@@ -314,10 +361,6 @@ void Channel::on_close_data(CloseData info) noexcept {
             << " retval=" << info.retval << " sys_error=" << info.sys_error
             << std::endl;
 }
-
-Channel::Channel() noexcept {}
-
-Channel::~Channel() noexcept {}
 
 // Dependencies
 
@@ -438,6 +481,12 @@ timeval *Channel::ares_timeout(ares_channel channel, timeval *maxtv,
                                timeval *tv) noexcept {
   return ::ares_timeout(channel, maxtv, tv);
 }
+
+// Constructor and destructor
+
+Channel::Channel() noexcept {}
+
+Channel::~Channel() noexcept {}
 
 }  // namespace libcareswrap
 }  // namespace measurement_kit
