@@ -73,25 +73,33 @@ static bool now() noexcept {
   return elapsed.count();
 }
 
+static void represent_into(const std::string &data,
+                           std::stringstream *ss) noexcept {
+  assert(ss != nullptr);
+  (*ss) << "\"";
+  for (size_t i = 0; i < data.size(); ++i) {
+    unsigned char ch = data[i];
+    (*ss) << std::hex << std::setfill('0') << std::setw(2) << (unsigned int)ch;
+    if (i < data.size() - 1) {
+      (*ss) << " ";
+    }
+  }
+  (*ss) << "\"";
+}
+
 static std::string represent(const std::string &data) noexcept {
   std::stringstream ss;
-  for (auto &ch : data) {
-    ss << std::hex << std::setfill('0') << std::setw(2) << (uint16_t)ch << " ";
-  }
+  represent_into(data, &ss);
   return ss.str();
 }
 
 static std::string representv(const std::vector<std::string> &datav) {
   std::stringstream ss;
   ss << "[ ";
-  for (auto &s : datav) {
-    for (auto &ch : s) {
-      auto ch16 = (uint16_t)ch;
-      ss << std::hex << std::setfill('0') << std::setw(2) << ch16 << " ";
-    }
-    ss << ",";
+  for (auto &data : datav) {
+    represent_into(data, &ss);
   }
-  ss << "]";
+  ss << " ]";
   return ss.str();
 }
 
@@ -331,35 +339,37 @@ void Channel::on_debug(const std::string &msg) noexcept {
 }
 
 void Channel::on_socket_data(SocketData info) noexcept {
-  std::clog << "cares: now=" << info.now << " domain=" << info.domain
-            << " type=" << info.type << " protocol=" << info.protocol
-            << " retval=" << info.retval << " sys_error=" << info.sys_error
-            << std::endl;
+  std::clog << "careswrap: socket(): now=" << info.now
+            << " domain=" << info.domain << " type=" << info.type
+            << " protocol=" << info.protocol << " retval=" << info.retval
+            << " sys_error=" << info.sys_error << std::endl;
 }
 
 void Channel::on_connect_data(ConnectData info) noexcept {
-  std::clog << "cares: now=" << info.now << " socket=" << info.socket
-            << " address=" << info.address << " port=" << info.port
-            << " retval=" << info.retval << " sys_error=" << info.sys_error
-            << std::endl;
+  std::clog << "careswrap: connect(): now=" << info.now
+            << " socket=" << info.socket << " address=" << info.address
+            << " port=" << info.port << " retval=" << info.retval
+            << " sys_error=" << info.sys_error << std::endl;
 }
 
 void Channel::on_recvfrom_data(RecvfromData info) noexcept {
-  std::clog << "cares: now=" << info.now << " socket=" << info.socket << " info"
-            << represent(info.data) << " retval=" << info.retval
-            << " sys_error=" << info.sys_error << std::endl;
+  std::clog << "careswrap: recvfrom(): now=" << info.now
+            << " socket=" << info.socket << " data=" << represent(info.data)
+            << " retval=" << info.retval << " sys_error=" << info.sys_error
+            << std::endl;
 }
 
 void Channel::on_sendv_data(SendvData info) noexcept {
-  std::clog << "cares: now=" << info.now << " socket=" << info.socket
-            << " datav" << representv(info.datav) << " retval=" << info.retval
-            << " sys_error=" << info.sys_error << std::endl;
+  std::clog << "careswrap: sendv(): now=" << info.now
+            << " socket=" << info.socket << " datav=" << representv(info.datav)
+            << " retval=" << info.retval << " sys_error=" << info.sys_error
+            << std::endl;
 }
 
 void Channel::on_close_data(CloseData info) noexcept {
-  std::clog << "cares: now=" << info.now << " socket=" << info.socket
-            << " retval=" << info.retval << " sys_error=" << info.sys_error
-            << std::endl;
+  std::clog << "careswrap: close(): now=" << info.now
+            << " socket=" << info.socket << " retval=" << info.retval
+            << " sys_error=" << info.sys_error << std::endl;
 }
 
 // Dependencies
