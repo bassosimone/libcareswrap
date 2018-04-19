@@ -68,6 +68,7 @@ using namespace measurement_kit::libcareswrap;
   } while (0)
 
 static bool now() noexcept {
+  // TODO(bassosimone): this does not seem to work as expected initially.
   static std::chrono::time_point<std::chrono::steady_clock> t0;
   std::chrono::duration<double> elapsed = std::chrono::steady_clock::now() - t0;
   return elapsed.count();
