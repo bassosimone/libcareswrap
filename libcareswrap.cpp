@@ -228,6 +228,9 @@ static void acallback(void *opaque, int status, int timeouts,
   auto result = static_cast<Result *>(opaque);
   result->status = status;
   result->timeouts = timeouts;
+  if (status != ARES_SUCCESS) {
+    return;
+  }
   if (hent->h_name != nullptr) {
     result->canonname = hent->h_name;
   }
