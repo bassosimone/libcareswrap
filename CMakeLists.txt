@@ -19,25 +19,22 @@ if(${UNIX})
   endif()
 endif()
 
-set(CARESWRAP_ARES_INCLUDE_DIR "" CACHE PATH "Directory containing ares.h")
-if(${CARESWRAP_ARES_INCLUDE_DIR})
-  check_include_file("${CARESWRAP_ARES_INCLUDE_DIR}/ares.h" HAVE_ARES_H)
-else()
-  check_include_file(ares.h HAVE_ARES_H)
+set(CARESWRAP_ARES_INCLUDEDIR "" CACHE PATH "Directory containing ares.h")
+if(NOT ("${CARESWRAP_ARES_INCLUDEDIR}" STREQUAL ""))
+  list(APPEND CMAKE_REQUIRED_INCLUDES "${CARESWRAP_ARES_INCLUDEDIR}")
 endif()
+check_include_file(ares.h HAVE_ARES_H)
 if(NOT (${HAVE_ARES_H}))
-  message(FATAL_ERROR "Can't find ares.h; Try using -DCARESWRAP_ARES_INCLUDE_DIR=PATH")
+  message(FATAL_ERROR "Cannot find ares.h header")
 endif()
-set(CARESWRAP_ARES_LIBRARY "" CACHE FILEPATH "C-ares library filepath")
-if(${CARESWRAP_ARES_LIBRARY})
-  set(CMAKE_REQUIRED_LIBRARIES ${CARES_WRAP_ARES_LIBRARY})
-else()
-  set(CMAKE_REQUIRED_LIBRARIES cares)
+
+set(CARESWRAP_ARES_LIBDIR "" CACHE PATH "Directory containing -lcares")
+message(STATUS "Looking for cares library")
+find_library(CARES_LIBRARY cares "${CARESWRAP_ARES_LIBDIR}")
+if("${CARES_LIBRARY}" STREQUAL "")
+  message(FATAL_ERROR "Can't find cares library")
 endif()
-check_function_exists(ares_library_init HAVE_ARES_LIBRARY_INIT)
-if(NOT (${HAVE_ARES_LIBRARY_INIT}))
-  message(FATAL_ERROR "Can't find -lcares; Try using -DCARESWRAP_ARES_LIBRARY=FILEPATH")
-endif()
+message(STATUS "Looking for cares library - done")
 
 add_library(
   careswrap
@@ -49,6 +46,7 @@ target_include_directories(
   careswrap
   PUBLIC
   ${CMAKE_CURRENT_SOURCE_DIR}
+  ${CMAKE_REQUIRED_INCLUDES}
 )
 install(
   FILES
@@ -62,7 +60,7 @@ install(
   DESTINATION
   lib
 )
-target_link_libraries(careswrap ${CMAKE_REQUIRED_LIBRARIES})
+target_link_libraries(careswrap ${CARES_LIBRARY})
 if(WIN32)
   target_link_libraries(careswrap ws2_32)
 endif()
